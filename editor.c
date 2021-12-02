@@ -1,6 +1,7 @@
 #include "cache.h"
 #include "config.h"
 #include "strbuf.h"
+#include "strvec.h"
 #include "run-command.h"
 #include "sigchain.h"
 #include "compat/terminal.h"
@@ -66,7 +67,6 @@ static int launch_specified_editor(const char *editor, const char *path,
 
 	if (strcmp(editor, ":")) {
 		struct strbuf realpath = STRBUF_INIT;
-		const char *args[] = { editor, NULL, NULL };
 		struct child_process p = CHILD_PROCESS_INIT;
 		int ret, sig, need_restore;
 		int is_interactive = isatty(2);
@@ -90,10 +90,10 @@ static int launch_specified_editor(const char *editor, const char *path,
 		}
 
 		strbuf_realpath(&realpath, path, 1);
-		args[1] = realpath.buf;
 
-		p.argv = args;
-		p.env = env;
+		strvec_pushl(&p.args, editor, realpath.buf, NULL);
+		if (env)
+			strvec_pushv(&p.env_array, (const char **)env);
 		p.use_shell = 1;
 		p.trace2_child_class = "editor";
 		need_restore = is_interactive ? prepare_term(editor) : 0;
